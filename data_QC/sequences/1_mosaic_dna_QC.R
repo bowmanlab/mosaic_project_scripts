@@ -6,9 +6,10 @@
 
 ########## Packages  Required ##########
 library(vegan)
-#library(oce)
 
 ########## Read in data ##########
+## set working directory
+setwd("~/mosaic_project_scripts")
 
 ## load R workspace
 load("~/mosaic/mosaic_16S_18S/data/round2/20220919_mosaic.Rdata")
