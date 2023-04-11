@@ -343,24 +343,54 @@ unique.16s.select <- unique.16s.select[,map.16s.select$sequence]
 rm(map.16s.select2, map.16s.select3, chlorofile)
 rm(chloro1,chloro2)
 
-########## eukaryotes ##########
+########## Clean up eukaryotes ##########
 
-#at this time there is no formal procedure or specific taxa to look out for when QC'ing 18s data within our lab
+#there is also no mismatch script for comparison between ROPE-RDP and paprica output but we can examine this manually at higher taxonomic levels and extract anything that seems suspicious
 
-#there is also no mismatch script for comparison between ROPE-RDP and paprica output. 
+map.18s.select.with.parasites <- fullmap.18s
 
-map.18s.select <- fullmap.18s
+mismatch18s <- grep('Bacteria', map.18s.select.with.parasite[, 12]) #701 sequences misidentified to bacteria, mostly parasitic nanoflagellates or episymbionts. We will remove as suspect sequences. 
+bacfile18s <- map.18s.select.with.parasite[mismatch18s,]
+map.18s.select1 <- map.18s.select.with.parasite[-mismatch18s,] ## remove from select file
 
+mismatch18s2 <- grep('Archaea', map.18s.select1[, 12]) #11015 sequences misidentified to archaea, again mostly parasitic nanoflagellates. We will remove as suspect sequences.
+arcfile18s <- map.18s.select1[mismatch18s2,]
+map.18s.select2 <- map.18s.select1[-mismatch18s2,] ## remove from file
 
+## remove similar sequences to create a paraiste only file
+par1 <- grep('Pirsonia', map.18s.select2[, 9])
+par2 <- grep('Hepatocystis', map.18s.select2[, 9])
+par3 <- grep('Vahlkampfia', map.18s.select2[, 9])
+par_all <- c(par1,par2,par3)
+parfile18s <- map.18s.select2[par_all,]
 
-########## Explore remaining mis-matches between the two pipelines
+#### Here we will go with a highly conservative QC isolating all parasitic/suspect/misidentified sequences (total of 13414 sequences)
+
+## Save information for potential use in later analyses
+finalparasites <- rbind(bacfile18s,arcfile18s,parfile18s)
+
+#taxonomic placement
+write.csv(finalparasites, file = "data_QC/sequences/generated_data/mosaic_18s_parasites_seq_edge_map.csv") 
+#unique tallies
+write.csv(as.data.frame(unique.18s.select[,finalparasites$sequence]), file = "data_QC/sequences/generated_data/mosaic_18s_parasites_ASVtally.csv") 
+
+## remove these sequences from final selective map file ASV tally information
+map.18s.select <- map.18s.select2[-par_all,] ## remove last batch of parasites
+unique.18s.select.with.parasite <- unique.18s.select ## save all tally information for later use
+unique.18s.select <- unique.18s.select.with.parasite[,map.18s.select$sequence] ##remove suspect ASVs from final selectivefile
+
+## clean environment 
+rm(fullmap.18s, arcfile18s,bacfile18s,finalparasites,map.18s.select1,map.18s.select2,parfile18s)
+rm(mismatch18s,mismatch18s2,par_all,par1,par2,par3)
+
+########## Explore remaining mis-matches between the two pipelines ########
 mismatch.16s <- map.16s.select[which(map.16s.select$rope_comparison == "mis-match"),] ## 4859 remaining mis-matches wihtin the 16s data, some of which appear to be suspect sequences? Should these also be removed? 
 write.csv(mismatch.16s, "data_QC/sequences/generated_data/mosaic_16s_paprica_ROPE_mismatch.csv")
 
-########## Clean Environment and Save Workspace ##########
-##clean environement 
-rm(mismatch.16s, fullmap.18s) 
+##clean environment
+rm(mismatch.16s)
 
+########## Clean Environment and Save Workspace ##########
 ##save environment
 save.image(file = "data_QC/sequences/generated_data/mosaic_taxa_QC_output.RData")
 
